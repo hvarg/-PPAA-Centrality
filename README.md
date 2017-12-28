@@ -1,2 +1,2 @@
-# -PPAA-Centrality
+# [PPAA] Centrality
 PPAA proyect
