@@ -3,52 +3,47 @@
 
 #define QMNAME "/s1"
 #define STNAME "/s2"
-/** TODO **/
-struct list *new_list()
+
+jqueue* jqueue_new (void)
 {
-  struct list * new = (struct list *) malloc(sizeof(struct list));
+  jqueue *new = (jqueue*) malloc(sizeof(jqueue));
   new->first = NULL;
   new->last  = NULL;
   new->size  = 0;
   return new;
 }
 
-void list_del(struct list *alist)
+void jqueue_del(jqueue *jq)
 {
-  struct item *act, *next;
-  for(act = alist->first; act != NULL; act = next){
+  job *act, *next;
+  for(act = jq->first; act != NULL; act = next){
     next = act->next;
-    free(act->value);
     free(act);
   }
-  free(alist);
+  free(jq);
 }
 
-void *extract_first(struct list *alist)
+job* jdequeue (jqueue *jq)
 {
-  struct item *tmp = alist->first;
-  void *val = tmp->value;
-  if (alist->last == tmp)
-    alist->last = NULL;
-  alist->first = tmp->next;
-  alist->size--;
-  free(tmp);
-  return val;
+  job *tmp = jq->first;
+  if (jq->last == tmp)
+    jq->last = NULL;
+  jq->first = tmp->next;
+  jq->size--;
+  return tmp;
 }
 
-void list_add(struct list *alist, void *element)
+void jenqueue (jqueue *jq, job *j)
 {
-  struct item *new = (struct item *) malloc(sizeof(struct item));
-  new->value = element;
-  new->next  = NULL;
-  if (alist->first == NULL) {
-    alist->first = new;
-    alist->last  = new;
+  j->next  = NULL;
+  if (jq->first == NULL) {
+    jq->first = j;
+    jq->last  = j;
   } else {
-    (*alist->last).next = new;
-    alist->last = new;
+    (*jq->last).next = j; //FIXME
+    jq->last = j;
   }
-  alist->size++;
+  jq->size++;
 }
 /****/
 
@@ -57,7 +52,7 @@ pool *pool_create(unsigned int n)
 {
   pool *P    = (pool*) malloc(sizeof(pool));
   P->threads = (pthread_t*) malloc(sizeof(pthread_t)*n);
-  P->queue   = new_list(); //FIXME
+  P->queue   = jqueue_new();
   P->size    = n;
   P->wmutex  = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t));
   P->idle    = (pthread_cond_t*)  malloc(sizeof(pthread_cond_t));
@@ -81,30 +76,25 @@ pool *pool_create(unsigned int n)
   sem_init(P->qmutex,0,1);
   sem_init(P->st,0,0);
 #endif
-  for (int i = 0; i < n; i++){
+  for (int i = 0; i < n; i++)
     pthread_create(&(P->threads[i]), NULL, _worker, P);
-  }
   return P;
 }
 
-void pool_del(pool *P)
+void pool_del (pool *P)
 {
-  //TODO: memory leak, destroy P->threads[i]
-  for(int i=0; i < P->size; i++)
-    pool_rm_job(P);
+  for (int i=0; i < P->size; i++)
+    _pool_rm_job(P);
   pool_wait(P);
-
   free(P->threads);
-  list_del(P->queue);
+  jqueue_del(P->queue);
   pthread_mutex_destroy(P->wmutex);
   pthread_cond_destroy(P->idle);
-
 #ifdef __APPLE__
-  // For some reason i cant close this one, maybe bc is used? FIXME
   sem_close(P->qmutex);
   sem_close(P->st);
-  sem_unlink("/s1");
-  sem_unlink("/s2");
+  sem_unlink(QMNAME);
+  sem_unlink(STNAME);
 #else
   sem_destroy(P->qmutex);
   sem_destroy(P->st);
@@ -126,9 +116,9 @@ void *_worker(void *vp)
       pthread_mutex_lock(P->wmutex);
       P->working++;
       pthread_mutex_unlock(P->wmutex);
-      my_job = (job*) extract_first(P->queue);
+      my_job = jdequeue(P->queue);
       sem_post(P->qmutex);
-      if ((int) my_job != 0) {
+      if (my_job->func != NULL) {
         my_job->func(my_job->args);
         free(my_job);
       }
@@ -137,7 +127,8 @@ void *_worker(void *vp)
       if (!P->working)
         pthread_cond_signal(P->idle);
       pthread_mutex_unlock(P->wmutex);
-      if ((int) my_job == 0) {
+      if (my_job->func == NULL) {
+        free(my_job);
         return NULL;
       }
     } else {
@@ -147,10 +138,12 @@ void *_worker(void *vp)
   }
 }
 
-void pool_rm_job(pool *P)
+void _pool_rm_job(pool *P)
 {
+  job *j = (job*) malloc(sizeof(job));
+  j->func = NULL;
   sem_wait(P->qmutex);
-  list_add(P->queue, 0);
+  jenqueue(P->queue, j);
   sem_post(P->qmutex);
   sem_post(P->st);
 }
@@ -161,7 +154,7 @@ void pool_send_job(pool *P, void *func, void *args)
   some_job->func = func;
   some_job->args = args;
   sem_wait(P->qmutex);
-  list_add(P->queue, some_job);
+  jenqueue(P->queue, some_job);
   sem_post(P->qmutex);
   sem_post(P->st);
 }
