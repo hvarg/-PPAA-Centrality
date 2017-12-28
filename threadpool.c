@@ -4,6 +4,7 @@
 #define QMNAME "/s1"
 #define STNAME "/s2"
 
+/* Create a job queue. */
 jqueue* jqueue_new (void)
 {
   jqueue *new = (jqueue*) malloc(sizeof(jqueue));
@@ -13,16 +14,18 @@ jqueue* jqueue_new (void)
   return new;
 }
 
-void jqueue_del(jqueue *jq)
+/* Delete a job queue. */
+void jqueue_del (jqueue *jq)
 {
   job *act, *next;
-  for(act = jq->first; act != NULL; act = next){
+  for (act = jq->first; act != NULL; act = next) {
     next = act->next;
     free(act);
   }
   free(jq);
 }
 
+/* Extract a job from the queue. */
 job* jdequeue (jqueue *jq)
 {
   job *tmp = jq->first;
@@ -33,6 +36,7 @@ job* jdequeue (jqueue *jq)
   return tmp;
 }
 
+/* Add a job to the queue. */
 void jenqueue (jqueue *jq, job *j)
 {
   j->next  = NULL;
@@ -40,12 +44,11 @@ void jenqueue (jqueue *jq, job *j)
     jq->first = j;
     jq->last  = j;
   } else {
-    (*jq->last).next = j; //FIXME
+    (jq->last)->next = j;
     jq->last = j;
   }
   jq->size++;
 }
-/****/
 
 /* Create a pool thread with n threads. */
 pool *pool_create(unsigned int n)
@@ -81,6 +84,7 @@ pool *pool_create(unsigned int n)
   return P;
 }
 
+/* Delete a pool thread. */
 void pool_del (pool *P)
 {
   for (int i=0; i < P->size; i++)
@@ -106,6 +110,7 @@ void pool_del (pool *P)
   free(P);
 }
 
+/* Worker. This is what the thread is doing all the time. */
 void *_worker(void *vp)
 {
   pool *P = (pool*) vp;
@@ -139,6 +144,7 @@ void *_worker(void *vp)
   }
 }
 
+/* Send a NULL job to stop a worker. Its used only when the pool is deleted. */
 void _pool_rm_job(pool *P)
 {
   job *j = (job*) malloc(sizeof(job));
@@ -149,6 +155,7 @@ void _pool_rm_job(pool *P)
   sem_post(P->st);
 }
 
+/* Add a job to the queue. */
 void pool_send_job(pool *P, void *func, void *args)
 {
   job *some_job = (job*) malloc(sizeof(job));
@@ -160,6 +167,7 @@ void pool_send_job(pool *P, void *func, void *args)
   sem_post(P->st);
 }
 
+/* Wait for all jobs to finish. */
 void pool_wait(pool *P)
 {
   pthread_mutex_lock(P->wmutex);

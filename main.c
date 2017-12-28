@@ -21,7 +21,7 @@ int main(int argc, const char * args[])
 {
   int   R  = (argc > 1) ? atoi(args[1]) : 10,
         NT = (argc > 2) ? atoi(args[2]) : 4,
-        i, j, gap;
+        i, gap;
   struct data  **D;
   pool  *P;
 

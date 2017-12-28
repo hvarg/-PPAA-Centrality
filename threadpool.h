@@ -13,9 +13,9 @@ typedef struct _job{
 
 /* Jobs queue. */
 typedef struct {
-  job           *first;       // First Job
-  job           *last;        // Last Job
-  unsigned int  size;
+  job           *first,       // First Job.
+                *last;        // Last Job.
+  unsigned int  size;         // Queue size.
 } jqueue;
 
 
@@ -31,17 +31,17 @@ typedef struct {
   pthread_cond_t  *idle;      // When idle
 } pool;
 
-pool* pool_create(unsigned int NTHREADS);
-void  pool_del(pool *P);
-void* _worker(void *vp);
-void  pool_send_job(pool *P, void *func, void *args);
-void  pool_wait(pool *P);
-void  _pool_rm_job(pool *P);
-
-jqueue* jqueue_new(void);
-void    jqueue_del(jqueue *jq);
-job*    jdequeue(jqueue *jq);
-void    jenqueue(jqueue *jq, job *j);
+/* Function declarations */
+pool*     pool_create       (unsigned int NTHREADS);
+void      pool_del          (pool *P);
+void*     _worker           (void *vp);
+void      pool_send_job     (pool *P, void *func, void *args);
+void      pool_wait         (pool *P);
+void      _pool_rm_job      (pool *P);
+jqueue*   jqueue_new        (void);
+void      jqueue_del        (jqueue *jq);
+job*      jdequeue          (jqueue *jq);
+void      jenqueue          (jqueue *jq, job *j);
 
 #endif
 /* vim: set ts=2 sw=2 sts=2 tw=80 : */
