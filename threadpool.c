@@ -129,6 +129,7 @@ void *_worker(void *vp)
       pthread_mutex_unlock(P->wmutex);
       if (my_job->func == NULL) {
         free(my_job);
+        sem_post(P->qmutex);
         return NULL;
       }
     } else {
