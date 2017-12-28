@@ -51,7 +51,7 @@ void jenqueue (jqueue *jq, job *j)
 }
 
 /* Create a pool thread with n threads. */
-pool *pool_create(unsigned int n)
+pool *pool_create (unsigned int n)
 {
   pool *P    = (pool*) malloc(sizeof(pool));
   P->threads = (pthread_t*) malloc(sizeof(pthread_t)*n);
@@ -111,7 +111,7 @@ void pool_del (pool *P)
 }
 
 /* Worker. This is what the thread is doing all the time. */
-void *_worker(void *vp)
+void *_worker (void *vp)
 {
   pool *P = (pool*) vp;
   job *my_job;
@@ -145,7 +145,7 @@ void *_worker(void *vp)
 }
 
 /* Send a NULL job to stop a worker. Its used only when the pool is deleted. */
-void _pool_rm_job(pool *P)
+void _pool_rm_job (pool *P)
 {
   job *j = (job*) malloc(sizeof(job));
   j->func = NULL;
@@ -156,7 +156,7 @@ void _pool_rm_job(pool *P)
 }
 
 /* Add a job to the queue. */
-void pool_send_job(pool *P, void *func, void *args)
+void pool_send_job (pool *P, void *func, void *args)
 {
   job *some_job = (job*) malloc(sizeof(job));
   some_job->func = func;
@@ -168,7 +168,7 @@ void pool_send_job(pool *P, void *func, void *args)
 }
 
 /* Wait for all jobs to finish. */
-void pool_wait(pool *P)
+void pool_wait (pool *P)
 {
   pthread_mutex_lock(P->wmutex);
   while (P->working || P->queue->size) {
