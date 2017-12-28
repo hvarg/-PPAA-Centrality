@@ -81,3 +81,4 @@ unsigned int _digits (unsigned int n)
   return -1;
 }
 
+/* vim: set ts=2 sw=2 sts=2 tw=80 : */
