@@ -1,6 +1,6 @@
 FLAGS = -O3 -pthread
-OBJS  = threadpool.c sgfile.c main.c
-HEAD  = threadpool.h sgfile.h
+OBJS  = threadpool.c sgfile.c centrality.c ilist.c main.c
+HEAD  = threadpool.h sgfile.h centrality.h ilist.h
 NAME  = test
 
 $(NAME): $(OBJS) $(HEAD)

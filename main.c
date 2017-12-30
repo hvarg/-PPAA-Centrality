@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "threadpool.h"
 #include "sgfile.h"
+#include "centrality.h"
 
 
 /* Aqui se guardaran los segmentos a calcular y su resultado. */
@@ -70,6 +72,19 @@ int main(int argc, const char * args[])
     }
     printf("\n");
   }*/
+  float *BC = betweenness_centrality(G);
+
+  /* Guardando los resultados en archivos. */
+  short fn_size = strlen(filename);
+  char *bc_out  = (char *) malloc(sizeof(char) * (fn_size + 11));
+  strcpy(bc_out, filename);
+  strcat(bc_out, ".bc.result");
+  FILE *fbc = fopen(bc_out, "w");
+  for (i=0; i< G->size; i++){
+    fprintf(fbc,"%d: %f\n", i, BC[i]);
+  }
+  fclose(fbc);
+  free(bc_out);
 
   graph_del(G);
 
