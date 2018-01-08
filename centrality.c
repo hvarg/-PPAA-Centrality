@@ -10,14 +10,16 @@ float *betweenness_centrality(graph *G)
 
 float *betweenness_centrality_range(graph *G, int start, int end)
 {
+  /* MEM init */
   float *BC = (float *) malloc(sizeof(float) * G->size);
-  int s, t, v, w, ph, count, *tmp,
+  int s, t, v, w, ph, count,
       *d = (int *) malloc(sizeof(int) * G->size);
   float *sigma = (float *) malloc(sizeof(float) * G->size),
         *delta = (float *) malloc(sizeof(float) * G->size);
   ilist **P = (ilist **) malloc(sizeof(ilist*) * G->size),
         **S = (ilist **) malloc(sizeof(ilist*) * G->size);
-  // is better if S is small, like a dinamic array or something.
+  // S probably dont use all the memory allocated here, but its better
+  // than a dinamic array or something like that.
   int i, j, k;
   item *elem1, *elem2;
   for (s=0; s < G->size; s++){
@@ -26,8 +28,11 @@ float *betweenness_centrality_range(graph *G, int start, int end)
     P[s] = NULL;
   }
   if (end > G->size) end = G->size;
+
+  /* Centrality */
   for (s=start; s < end; s++) {
-    // free S (at least)
+    /* Initialization and reset of variables.
+     * BC is the only variable that is not reset. */
     for (t=0; t < G->size; t++) {
       P[t] = new_ilist();
       sigma[t] = 0.0;
@@ -39,6 +44,8 @@ float *betweenness_centrality_range(graph *G, int start, int end)
     S[ph] = new_ilist();
     ilist_add(S[ph], s);
     count = 1;
+    /* Shortest path discovery and conunting.
+     * Uses: S, ph, sigma, P */
     while (count > 0){
       count = 0;
       for (elem1 = S[ph]->first; elem1 != NULL; elem1 = elem1->next) {
@@ -60,6 +67,8 @@ float *betweenness_centrality_range(graph *G, int start, int end)
       ph++;
     }
     ph--;
+    /* Dependency accumulation. 
+     * Uses: S, ph, sigma, P. */
     for (t=0; t < G->size; t++)
       delta[t] = 0.0;
     while (ph > 0) {
@@ -73,6 +82,7 @@ float *betweenness_centrality_range(graph *G, int start, int end)
       }
       ph--;
     }
+    /* Free stuff */
     for (t=0; t < G->size; t++) {
       if (S[t] != NULL){
         ilist_del(S[t]);
