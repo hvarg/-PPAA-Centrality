@@ -6,7 +6,8 @@
 graph *open_sg (const char *filename)
 {
   unsigned int  i = 0,
-                j, id;
+                j = 0,
+                id = 0;
   char          c = '\0',
                 *buffer;
   FILE          *fp = fopen(filename, "r");
@@ -55,8 +56,8 @@ graph *open_sg (const char *filename)
     }
   }
 
-  free(buffer);
   fclose(fp);
+  free(buffer);
   return G;
 }
 
