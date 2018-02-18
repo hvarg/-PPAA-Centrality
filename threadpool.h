@@ -3,45 +3,58 @@
 
 #include <pthread.h>
 #include <semaphore.h>
+#include "ilist.h"
+#include "sgfile.h"
 
-/* Job to be done. */
+/* Data of the job to be done. */
 typedef struct _job{
-  void        (*func)(void* args);   // Function.
-  void        *args;                 // Arguments.
-  struct _job *next;                 // Next Job.
+  int         ph,id;
+  float       *sigma, *bc;
+  ilist       **P, **S;
+  struct _job *next;
 } job;
 
 /* Jobs queue. */
 typedef struct {
-  job           *first,       // First Job.
-                *last;        // Last Job.
-  unsigned int  size;         // Queue size.
+  job           *first, *last;  // First and last jobs.
+  unsigned int  size;           // Queue size.
 } jqueue;
 
 
-/* Pool thread. */
+/* Pipeline to compute betweenness centrality. */
 typedef struct {
-  pthread_t       *threads;   // Threads.
-  jqueue          *queue;     // Job queue. FIXME
-  unsigned int    size,       // Total number of threads.
-                  working;    // Number of currently working threads.
-  sem_t           *qmutex,    // Queue mutex.
-                  *st;        // Semaphore for start threads.
-  pthread_mutex_t *wmutex;    // Working mutex.
-  pthread_cond_t  *idle;      // When idle
-} pool;
+  graph           *G;               // Graph to be computed.
+  float           *bc;              // Betweenness centrality.
+  pthread_t       *thr_discovery,   // Discovery threads.
+                  *thr_accum,       // Accumulation threads.
+                  thr_sum;          // Thread to do the final sum.
+  unsigned int    n_discovery,      // Number of discovery threads.
+                  n_accum,          // Number of accumulation threads.
+                  count;            // Count for the discovery task.
+  jqueue          *queue,           // Job queue for 'accum'.
+                  *queue2;          // Job queue for 'sum'.
+  sem_t           *mutex_count,     // 'count' mutex.
+                  *qmutex,          // 'queue' mutex.
+                  *qmutex2,         // 'queue2' mutex.
+                  *st,              // Semaphore for start 'accum' threads.
+                  *st2;             // Semaphore for start 'sum' threads.
+  pthread_mutex_t *wmutex;          // Working mutex.
+} pipeline_cent;
 
 /* Function declarations */
-pool*     pool_create       (unsigned int NTHREADS);
-void      pool_del          (pool *P);
-void*     _worker           (void *vp);
-void      pool_send_job     (pool *P, void *func, void *args);
-void      pool_wait         (pool *P);
-void      _pool_rm_job      (pool *P);
-jqueue*   jqueue_new        (void);
-void      jqueue_del        (jqueue *jq);
-job*      jdequeue          (jqueue *jq);
-void      jenqueue          (jqueue *jq, job *j);
+pipeline_cent*    pipeline_create   (graph *G, unsigned int n, unsigned int m);
+void              pipeline_start    (pipeline_cent *P);
+void              pipeline_del      (pipeline_cent *P);
+void              pipeline_wait     (pipeline_cent *P);
+void*             _discovery        (void *vp);
+void*             _accum            (void *vp);
+void*             _sum              (void *vp);
+jqueue*           jqueue_new        (void);
+void              jqueue_del        (jqueue *jq);
+job*              jdequeue          (jqueue *jq);
+void              jenqueue2         (jqueue *jq, job *j, float *bc);
+void              jenqueue          (jqueue *jq, int id, int ph, float *sigma,
+                                     ilist **P, ilist **S);
 
 #endif
 /* vim: set ts=2 sw=2 sts=2 tw=80 : */
