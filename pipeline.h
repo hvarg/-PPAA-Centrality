@@ -1,5 +1,5 @@
-#ifndef POOL_H_
-#define POOL_H_
+#ifndef PIPEL_H_
+#define PIPEL_H_
 
 #include <pthread.h>
 #include <semaphore.h>

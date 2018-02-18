@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "threadpool.h"
+#include "pipeline.h"
 #include "sgfile.h"
 
 
@@ -24,7 +24,7 @@ int main(int argc, const char * args[])
   if (G == NULL) 
     return EXIT_FAILURE;
 
-  /* Create pool */
+  /* Create pipeline */
   pipeline_cent  *P  = pipeline_create(G, n, m);
 
   pipeline_start(P);

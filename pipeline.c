@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include "threadpool.h"
+#include "pipeline.h"
 
 #ifdef __APPLE__
 #define named_sem_init(VAR, NAME, MODE) {\
@@ -98,33 +98,12 @@ pipeline_cent *pipeline_create (graph *G, unsigned int n, unsigned int m) {
   P->queue2         = jqueue_new();
   P->wmutex         = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t));
   pthread_mutex_init(P->wmutex, NULL);
-  /* Apple does not accept anonymous semaphores so...
-   * TODO: this can be more beautiful. */
+  /* Apple does not accept anonymous semaphores so... */
 #ifdef __APPLE__
   named_sem_init(P->qmutex, QMNAME, 1);
   named_sem_init(P->qmutex2, QMNAME2, 1);
   named_sem_init(P->st, STNAME, 0);
   named_sem_init(P->st2, STNAME2, 0);
-  /*if ((P->qmutex = sem_open(QMNAME, O_CREAT|O_EXCL, 0644, 1)) == SEM_FAILED) {
-    sem_unlink(QMNAME);
-    if (!(P->qmutex = sem_open(QMNAME, O_CREAT|O_EXCL, 0644, 1)))
-      return NULL;
-  }
-  if ((P->st = sem_open(STNAME, O_CREAT|O_EXCL, 0644, 0)) == SEM_FAILED) {
-    sem_unlink(STNAME);
-    if (!(P->st = sem_open(STNAME, O_CREAT|O_EXCL, 0644, 0)))
-      return NULL;
-  }
-  if ((P->qmutex2 = sem_open(QMNAME2, O_CREAT|O_EXCL, 0644, 1)) == SEM_FAILED) {
-    sem_unlink(QMNAME2);
-    if (!(P->qmutex2 = sem_open(QMNAME2, O_CREAT|O_EXCL, 0644, 1)))
-      return NULL;
-  }
-  if ((P->st2 = sem_open(STNAME2, O_CREAT|O_EXCL, 0644, 0)) == SEM_FAILED) {
-    sem_unlink(STNAME2);
-    if (!(P->st2 = sem_open(STNAME2, O_CREAT|O_EXCL, 0644, 0)))
-      return NULL;
-  }*/
 #else
   P->qmutex  = (sem_t*) malloc(sizeof(sem_t));
   P->qmutex2 = (sem_t*) malloc(sizeof(sem_t));

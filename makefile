@@ -1,6 +1,6 @@
 FLAGS = -O3 -pthread
-OBJS  = threadpool.c sgfile.c ilist.c main.c
-HEAD  = threadpool.h sgfile.h ilist.h
+OBJS  = pipeline.c sgfile.c ilist.c main.c
+HEAD  = pipeline.h sgfile.h ilist.h
 NAME  = pipeline_cent
 
 $(NAME): $(OBJS) $(HEAD)
