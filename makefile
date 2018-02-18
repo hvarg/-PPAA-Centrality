@@ -1,7 +1,7 @@
 FLAGS = -O3 -pthread
 OBJS  = threadpool.c sgfile.c centrality.c ilist.c main.c
 HEAD  = threadpool.h sgfile.h centrality.h ilist.h
-NAME  = test
+NAME  = thpool_cent
 
 $(NAME): $(OBJS) $(HEAD)
 	gcc $(FLAGS) -o $(NAME) $(OBJS)

@@ -55,6 +55,7 @@ graph *open_sg (const char *filename)
     }
   }
 
+  free(buffer);
   fclose(fp);
   return G;
 }
