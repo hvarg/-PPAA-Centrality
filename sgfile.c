@@ -64,7 +64,8 @@ graph *open_sg (const char *filename)
 /* Delete a graph. */
 void graph_del (graph *G)
 {
-  for (int i = 0; i < G->size; free(G->neigh[i++]));
+  int i;
+  for (i = 0; i < G->size; free(G->neigh[i++]));
   free(G->nsize);
   free(G);
 }

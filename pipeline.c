@@ -10,6 +10,7 @@ if (((VAR) = sem_open((NAME), O_CREAT|O_EXCL, 0644, (MODE))) == SEM_FAILED) {\
 }\
 }
 
+#define MCNAME  "/s0"
 #define QMNAME  "/s1"
 #define STNAME  "/s2"
 #define QMNAME2 "/s3"
@@ -100,11 +101,14 @@ pipeline_cent *pipeline_create (graph *G, unsigned int n, unsigned int m) {
   pthread_mutex_init(P->wmutex, NULL);
   /* Apple does not accept anonymous semaphores so... */
 #ifdef __APPLE__
+  named_sem_init(P->mutex_count, MCNAME, 1);
   named_sem_init(P->qmutex, QMNAME, 1);
   named_sem_init(P->qmutex2, QMNAME2, 1);
   named_sem_init(P->st, STNAME, 0);
   named_sem_init(P->st2, STNAME2, 0);
 #else
+  P->mutex_count  = (sem_t*) malloc(sizeof(sem_t));
+  sem_init(P->mutex_count, 0,1);
   P->qmutex  = (sem_t*) malloc(sizeof(sem_t));
   P->qmutex2 = (sem_t*) malloc(sizeof(sem_t));
   P->st      = (sem_t*) malloc(sizeof(sem_t));
@@ -119,10 +123,11 @@ pipeline_cent *pipeline_create (graph *G, unsigned int n, unsigned int m) {
 
 /* Start the tasks. */
 void pipeline_start (pipeline_cent *P) {
+  int i;
   pthread_mutex_lock(P->wmutex);
-  for (int i = 0; i < P->n_discovery; i++)
+  for (i = 0; i < P->n_discovery; i++)
     pthread_create(&(P->thr_discovery[i]), NULL, _discovery, P);
-  for (int i = 0; i < P->n_accum; i++)
+  for (i = 0; i < P->n_accum; i++)
     pthread_create(&(P->thr_accum[i]), NULL, _accum, P);
   pthread_create(&(P->thr_sum), NULL, _sum, P);
 }
@@ -222,6 +227,7 @@ void *_discovery (void *vp) {
     /* Start again. */
     sem_wait(P->mutex_count);
   }
+  sem_post(P->mutex_count);
   free(d);
   return NULL;
 }
@@ -248,7 +254,6 @@ void *_accum (void *vp) {
       if (j->id < 0) {
         free(j);
         free(delta);
-        sem_post(P->qmutex); // Because this thread is dead now.
         return NULL;
       } else {
         bc = (float*) calloc((P->G)->size, sizeof(float));  // This node bc.
