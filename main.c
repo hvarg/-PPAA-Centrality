@@ -71,7 +71,7 @@ int main(int argc, const char * args[])
   for (i = 0; i < NT; i++) {
     D[i] = (struct data*) malloc(sizeof(struct data));
     D[i]->start = i*gap;
-    D[i]->end   = (i+1)*gap;
+    D[i]->end   = (i+1)*gap > G->size ? G->size : (i+1)*gap;
     SD[i] = (struct sdat*) malloc(sizeof(struct sdat));
     SD[i]->i = i;
     SD[i]->D = D;

@@ -37,7 +37,7 @@ void      pool_del          (pool *P);
 void*     _worker           (void *vp);
 void      pool_send_job     (pool *P, void *func, void *args);
 void      pool_wait         (pool *P);
-void      _pool_rm_job      (pool *P);
+void      delete_jobs       (pool *P, int m);
 jqueue*   jqueue_new        (void);
 void      jqueue_del        (jqueue *jq);
 job*      jdequeue          (jqueue *jq);

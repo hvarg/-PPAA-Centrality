@@ -1,8 +1,17 @@
 #include <stdlib.h>
 #include "threadpool.h"
 
+#ifdef __APPLE__
+#define named_sem_init(VAR, NAME, MODE) {\
+if (((VAR) = sem_open((NAME), O_CREAT|O_EXCL, 0644, (MODE))) == SEM_FAILED) {\
+  sem_unlink((NAME));\
+  if (!((VAR) = sem_open((NAME), O_CREAT|O_EXCL, 0644, (MODE))))\
+    return NULL;\
+}\
+}
 #define QMNAME "/s1"
 #define STNAME "/s2"
+#endif
 
 /* Create a job queue. */
 jqueue* jqueue_new (void)
@@ -63,23 +72,16 @@ pool *pool_create (unsigned int n)
   pthread_mutex_init(P->wmutex, NULL);
   pthread_cond_init(P->idle, NULL);
 #ifdef __APPLE__
-  if ((P->qmutex = sem_open(QMNAME, O_CREAT|O_EXCL, 0644, 1)) == SEM_FAILED) {
-    sem_unlink(QMNAME);
-    if (!(P->qmutex = sem_open(QMNAME, O_CREAT|O_EXCL, 0644, 1)))
-      return NULL;
-  }
-  if ((P->st = sem_open(STNAME, O_CREAT|O_EXCL, 0644, 0)) == SEM_FAILED) {
-    sem_unlink(STNAME);
-    if (!(P->st = sem_open(STNAME, O_CREAT|O_EXCL, 0644, 0)))
-      return NULL;
-  }
+  named_sem_init(P->qmutex, QMNAME, 1);
+  named_sem_init(P->st, STNAME, 0);
 #else
   P->qmutex  = (sem_t*) malloc(sizeof(sem_t));
   P->st      = (sem_t*) malloc(sizeof(sem_t));
   sem_init(P->qmutex,0,1);
   sem_init(P->st,0,0);
 #endif
-  for (int i = 0; i < n; i++)
+  int i;
+  for (i = 0; i < n; i++)
     pthread_create(&(P->threads[i]), NULL, _worker, P);
   return P;
 }
@@ -87,8 +89,7 @@ pool *pool_create (unsigned int n)
 /* Delete a pool thread. */
 void pool_del (pool *P)
 {
-  for (int i=0; i < P->size; i++)
-    _pool_rm_job(P);
+  delete_jobs(P, P->size);
   pool_wait(P);
   free(P->threads);
   jqueue_del(P->queue);
@@ -125,7 +126,6 @@ void *_worker (void *vp)
       sem_post(P->qmutex);
       if (my_job->func != NULL) {
         my_job->func(my_job->args);
-        free(my_job);
       }
       pthread_mutex_lock(P->wmutex);
       P->working--;
@@ -134,9 +134,10 @@ void *_worker (void *vp)
       pthread_mutex_unlock(P->wmutex);
       if (my_job->func == NULL) {
         free(my_job);
-        sem_post(P->qmutex);
         return NULL;
       }
+      else 
+        free(my_job);
     } else {
       sem_post(P->qmutex);
       sem_wait(P->st);
@@ -144,15 +145,21 @@ void *_worker (void *vp)
   }
 }
 
-/* Send a NULL job to stop a worker. Its used only when the pool is deleted. */
-void _pool_rm_job (pool *P)
+/* Send a NULL job to stop m workers. Its used only when the pool is deleted. */
+void delete_jobs (pool *P, int m)
 {
-  job *j = (job*) malloc(sizeof(job));
-  j->func = NULL;
+  int i;
+  job *j;
   sem_wait(P->qmutex);
-  jenqueue(P->queue, j);
+  for (i = 0; i < m; i++) {
+    j = (job*) malloc(sizeof(job));
+    j->func = NULL;
+    jenqueue(P->queue, j);
+  }
+  for (i = 0; i < m; i++) {
+    sem_post(P->st);
+  }
   sem_post(P->qmutex);
-  sem_post(P->st);
 }
 
 /* Add a job to the queue. */
